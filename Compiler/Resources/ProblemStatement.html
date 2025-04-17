@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Постановка задачи</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>Постановка задачи</h1>
+
+    <h2>Тема работы</h2>
+    <i>Разработка текстового редактора с функциями языкового процессора. Объявление и инициализация целочисленной константы в СУБД PostgreSQL.</i>
+
+    <h2 id="особенности-языка">Особенности языка</h2>
+    <i>Константы в языке SQL - это элементы данных, значения которых известны на этапе компиляции и не изменяются в процессе выполнения программы. Для описания констант используется оператор DECLARE с ключевым словом CONSTANT.</i>
+    <i>Формат записи для объявления целочисленной константы в SQL следующий:</i>
+
+    <strong>DECLARE имя_константы CONSTANT INTEGER = значение;</strong>
+
+    <h2>Примеры верных строк из языка</h2>
+
+    <i>В соответствии с разработанной автоматной грамматикой синтаксический анализатор (парсер) целочисленных констант будет считать верными следующие записи:</i>
+
+    <br><strong>DECLARE total_amount CONSTANT INTEGER = -150;</strong>
+
+    <br><strong>DECLARE productPrice CONSTANT INTEGER = +150;</stront>
+
+    <br><strong>DECLARE expense_1_amount CONSTANT INTEGER = -50;</stront>
+
+    <br><strong>DECLARE product_price CONSTANT INTEGER = -150; DECLARE total_2 CONSTANT INTEGER = 50;</strong>
+
+    <br><strong>DECLARE productPrice3 CONSTANT INTEGER = 150; DECLARE expense_amount_4 CONSTANT INTEGER = -50;</strong>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-sql.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,265 @@
+﻿<Window x:Class="Compiler.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:local="clr-namespace:Compiler"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:cmd="http://schemas.microsoft.com/winfx/2006/xaml/presentation/command"
+        mc:Ignorable="d" DragEnter="Window_DragEnter" Drop="Window_Drop"
+        Title="{Binding WindowTitle}" Height="450" PreviewKeyDown="Window_PreviewKeyDown" Background="MintCream" Width="858" MinHeight="300" MinWidth="400" Icon="../Resources/logo.ico" Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <local:IncrementConverter x:Key="IncrementConverter" />
+        <local:CountToVisibilityVisibleConverter x:Key="CountToVisibilityVisibleConverter"/>
+        <local:CountToVisibilityHiddenConverter x:Key="CountToVisibilityHiddenConverter"/>
+    </Window.Resources>
+
+    <Grid Background="MintCream">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="0.6*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="0.4*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" FontSize="16" Background="MintCream" ItemContainerStyle="{StaticResource MenuItemStyle}">
+            <MenuItem Header="Файл" FontFamily="Calibri" ItemContainerStyle="{StaticResource MenuItemStyle}">
+                <MenuItem Header="Создать" FontFamily="Calibri" Command="{Binding CreateNewFileCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="FileOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Открыть" FontFamily="Calibri" Command="{Binding OpenFileCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="FolderOpenOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Сохранить" FontFamily="Calibri" Command="{Binding SaveFileCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ContentSaveOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Сохранить как" FontFamily="Calibri" Command="{Binding SaveAsFileCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ContentSaveAddOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Выход" FontFamily="Calibri" Command="{Binding ExitCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ExitToApp"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Правка" FontFamily="Calibri" ItemContainerStyle="{StaticResource MenuItemStyle}">
+                <MenuItem x:Name="undoMenuItem" Header="Отменить" FontFamily="Calibri" Click="undoButton_Click" IsEnabled="False">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ArrowBack"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem x:Name="redoMenuItem" Header="Повторить" FontFamily="Calibri" Click="redoButton_Click" IsEnabled="False">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ArrowForward"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Вырезать" FontFamily="Calibri" Click="CutSelectedText">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ContentCut"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Копировать" FontFamily="Calibri" Click="CopySelectedText">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ContentCopy"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Вставить" FontFamily="Calibri" Click="PasteText">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="ContentPaste"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Удалить" FontFamily="Calibri" Click="DeleteSelectedText">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="DeleteOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Выделиить все" FontFamily="Calibri" Click="SelectAllText">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="SelectAll"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Текст" FontFamily="Calibri" ItemContainerStyle="{StaticResource MenuItemStyle}">
+                <MenuItem Header="Постановка задачи" Command="{Binding ProblemStatementCommand}"/>
+                <MenuItem Header="Грамматика" Command="{Binding GrammarCommand}"/>
+                <MenuItem Header="Классификация грамматики" Command="{Binding GrammarClassificationCommand}"/>
+                <MenuItem Header="Метод анализа" Command="{Binding MethodOfAnalysisCommand}"/>
+                <MenuItem Header="Диагностика и нейтрализация ошибок" Command="{Binding NeutralizingErrorsCommand}"/>
+                <MenuItem Header="Тестовые примеры" ItemContainerStyle="{StaticResource MenuItemStyle}">
+                    <MenuItem Header="Верные данные" FontFamily="Calibri" Command="{Binding OpenTestCaseCommand}"/>
+                    <MenuItem Header="Ошибочные данные" FontFamily="Calibri" Command="{Binding OpenWrongTestCaseCommand}"/>
+                </MenuItem>
+                <MenuItem Header="Список литературы" FontFamily="Calibri" Command="{Binding LiteratureCommand}"/>
+                <MenuItem Header="Исходный код программы" FontFamily="Calibri"/>
+            </MenuItem>
+            <MenuItem Header="Пуск" FontFamily="Calibri" Command="{Binding StartAnalyzersCommand}"/>
+            <MenuItem Header="Справка" FontFamily="Calibri" ItemContainerStyle="{StaticResource MenuItemStyle}">
+                <MenuItem Header="Вызов справки" FontFamily="Calibri" Command="{Binding HelpCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="QuestionMarkCircleOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="О программе" FontFamily="Calibri" Command="{Binding AboutCommand}">
+                    <MenuItem.Icon>
+                        <materialDesign:PackIcon Kind="AboutCircleOutline"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <ToolBarTray Background="MintCream" Grid.Row="1">
+            <ToolBar Background="MintCream">
+                <Button Background="MintCream" Padding="5" Command="{Binding CreateNewFileCommand}" Width="36">
+                    <Button.ToolTip>
+                        <ToolTip Content="Создать" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="FileAuto"/>
+                </Button>
+                <Button Background="MintCream" Padding="5" Command="{Binding OpenFileCommand}">
+                    <Button.ToolTip>
+                        <ToolTip Content="Открыть" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="Folder" />
+                </Button>
+                <Button Padding="5" Command="{Binding SaveFileCommand}">
+                    <Button.ToolTip>
+                        <ToolTip Content="Сохранить" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ContentSave" />
+                </Button>
+                <Separator/>
+                <ComboBox x:Name="fontSizeComboBox" Width="35" SelectedIndex="6" IsEditable="True" IsReadOnly="False" StaysOpenOnEdit="True" SelectionChanged="fontSizeComboBox_SelectionChanged" Background="MintCream" >
+                    <ComboBoxItem Content="8" />
+                    <ComboBoxItem Content="9" />
+                    <ComboBoxItem Content="10" />
+                    <ComboBoxItem Content="11" />
+                    <ComboBoxItem Content="12" />
+                    <ComboBoxItem Content="14" />
+                    <ComboBoxItem Content="16" />
+                    <ComboBoxItem Content="18" />
+                    <ComboBoxItem Content="20" />
+                    <ComboBoxItem Content="22" />
+                    <ComboBoxItem Content="24" />
+                    <ComboBoxItem Content="26" />
+                    <ComboBoxItem Content="28" />
+                    <ComboBoxItem Content="36" />
+                    <ComboBoxItem Content="48" />
+                    <ComboBoxItem Content="72" />
+                </ComboBox>
+                <Button x:Name="undoButton" Padding="5" Click="undoButton_Click" IsEnabled="False">
+                    <Button.ToolTip>
+                        <ToolTip Content="Отменить" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ArrowBackCircle" />
+                </Button>
+                <Button x:Name="redoButton" Padding="5" Click="redoButton_Click" IsEnabled="False">
+                    <Button.ToolTip>
+                        <ToolTip Content="Повторить" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ArrowForwardCircle" />
+                </Button>
+                <Button Padding="5" Click="CopySelectedText">
+                    <Button.ToolTip>
+                        <ToolTip Content="Копировать" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ContentCopy" />
+                </Button>
+                <Button Padding="5" Click="CutSelectedText">
+                    <Button.ToolTip>
+                        <ToolTip Content="Вырезать" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ContentCut" />
+                </Button>
+                <Button Padding="5" Click="PasteText">
+                    <Button.ToolTip>
+                        <ToolTip Content="Вставить" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="ContentPaste" />
+                </Button>
+                <Button Padding="5" Command="{Binding StartAnalyzersCommand}">
+                    <Button.ToolTip>
+                        <ToolTip Content="Пуск" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="PlayBox" />
+                </Button>
+                <Separator/>
+                <Button Padding="5" Command="{Binding HelpCommand}">
+                    <Button.ToolTip>
+                        <ToolTip Content="Вызов справки" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="QuestionMark" />
+                </Button>
+                <Button Padding="5" Command="{Binding AboutCommand}">
+                    <Button.ToolTip>
+                        <ToolTip Content="О программе" />
+                    </Button.ToolTip>
+                    <materialDesign:PackIcon Kind="About" />
+                </Button>
+            </ToolBar>
+        </ToolBarTray>
+
+        <avalonedit:TextEditor Grid.Row="2" Name="textEditor" Margin="5" Background="MintCream" FontSize="16"
+                               VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="0,0,0,0"
+                               SyntaxHighlighting="C#" ShowLineNumbers="True" TextChanged="textEditor_TextChanged">
+            <i:Interaction.Behaviors>
+                <local:AvalonEditBehaviour InputText="{Binding FileContent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            </i:Interaction.Behaviors>
+        </avalonedit:TextEditor>
+
+        <GridSplitter Grid.Row="3" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" Background="MintCream"/>
+
+        <TabControl Background="MintCream" Grid.Row="4" Style="{StaticResource MaterialDesignNavigationRailTabControl}">
+            <TabItem Header="Парсер" ToolTip="Синтаксический анализатор" VerticalAlignment="Top" FontFamily="Calibri" Height="24" Width="70">
+                <DataGrid x:Name="parserDataGrid" FontSize="16" EnableRowVirtualization="False" Margin="5,0,5,5" ItemsSource="{Binding IncorrectLexemes, Mode=OneWay}" SelectedItem="{Binding SelectedError}" AlternationCount="{Binding IncorrectLexemes.Count}" GridLinesVisibility="All" Background="MintCream" AutoGenerateColumns="False" BorderBrush="MintCream">
+                    <DataGrid.Resources>
+                        <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}">
+                            <Setter Property="Background" Value="MintCream" />
+                            <Setter Property="FontWeight" Value="Bold" />
+                            <Setter Property="FontFamily" Value="Calibri" />
+                            <Setter Property="FontSize" Value="16" />
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№" Binding="{Binding AlternationIndex, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource IncrementConverter}}" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Местоположение" Binding="{Binding Position, Mode=OneWay}"/>
+                        <DataGridTextColumn Header="Сообщение" Binding="{Binding Message, Mode=OneWay}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+            <TabItem Header="Сканер" ToolTip="Лексический анализатор" FontFamily="Calibri" Height="24">
+                <DataGrid x:Name="lexerDataGrid" FontSize="16" EnableRowVirtualization="False" Margin="0,0,5,5" SelectedItem="{Binding SelectedLexeme}" ItemsSource="{Binding Lexemes, Mode=OneWay}" AlternationCount="{Binding Lexemes.Count}" GridLinesVisibility="All" Background="MintCream" AutoGenerateColumns="False" BorderBrush="MintCream">
+                    <DataGrid.Resources>
+                        <Style BasedOn="{StaticResource {x:Type DataGridColumnHeader}}" TargetType="{x:Type DataGridColumnHeader}">
+                            <Setter Property="Background" Value="MintCream" />
+                            <Setter Property="FontWeight" Value="Bold" />
+                            <Setter Property="FontFamily" Value="Calibri" />
+                            <Setter Property="FontSize" Value="16" />
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№" Binding="{Binding AlternationIndex, RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource IncrementConverter}}" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Условный код" Binding="{Binding LexemeId, Mode=OneWay}" DisplayIndex="1"/>
+                        <DataGridTextColumn Header="Тип лексемы" Binding="{Binding LexemeName, Mode=OneWay}" DisplayIndex="2"/>
+                        <DataGridTextColumn Header="Лексема" Binding="{Binding Value, Mode=OneWay}" DisplayIndex="3"/>
+                        <DataGridTextColumn Header="Местоположение" Binding="{Binding Position, Mode=OneWay}" DisplayIndex="4"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
