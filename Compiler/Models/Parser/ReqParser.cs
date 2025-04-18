@@ -42,7 +42,7 @@ public class ReqParser : IParser
                 Errors.Add(new ParserError($"Выражение незакончено", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
         }
 
-        return Errors;
+        return Errors.OrderBy(e => e.StartIndex).ToList();
     }
 
     private void PreprocessTokens(List<Lexeme> lexemes)
