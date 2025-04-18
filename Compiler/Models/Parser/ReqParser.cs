@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -25,7 +25,6 @@ public class ReqParser : IParser
         if (tokensList.Count <= 0)
             return Errors;
 
-        // Предварительная обработка токенов - объединение поврежденных ключевых слов
         PreprocessTokens(tokensList);
 
         tokens = tokensList;
@@ -35,7 +34,7 @@ public class ReqParser : IParser
 
         try
         {
-            Z(false);
+            DECLARE(false);
         }
         catch (SyntaxErrorException)
         {
@@ -48,7 +47,6 @@ public class ReqParser : IParser
 
     private void PreprocessTokens(List<Lexeme> lexemes)
     {
-        // Сначала удаляем недопустимые символы
         for (int i = lexemes.Count - 1; i >= 0; i--)
         {
             var lexeme = lexemes[i];
@@ -57,7 +55,6 @@ public class ReqParser : IParser
                 Errors.Add(new ParserError($"Недопустимый символ \"{lexeme.Value}\"", lexeme.StartIndex, lexeme.EndIndex, ErrorType.UnfinishedExpression));
                 lexemes.RemoveAt(i);
 
-                // Помечаем соседние токены как поврежденные
                 if (i > 0)
                     lexemes[i - 1].IsCorrupted = true;
                 if (i < lexemes.Count)
@@ -65,20 +62,17 @@ public class ReqParser : IParser
             }
         }
 
-        // Затем объединяем поврежденные ключевые слова
         for (int i = 0; i < lexemes.Count; i++)
         {
             var lexeme = lexemes[i];
             if (lexeme.IsCorrupted && IsKeywordType(lexeme.Type))
             {
-                // Начинаем собирать поврежденное ключевое слово
                 int start = i;
                 int end = i;
                 int startIndex = lexeme.StartIndex;
                 int endIndex = lexeme.EndIndex;
                 string combinedValue = lexeme.Value;
 
-                // Ищем последующие поврежденные токены того же типа
                 while (end + 1 < lexemes.Count &&
                        lexemes[end + 1].IsCorrupted &&
                        lexemes[end + 1].Type == lexeme.Type)
@@ -90,16 +84,14 @@ public class ReqParser : IParser
 
                 if (start != end)
                 {
-                    // Создаем объединенный токен
                     var combinedLexeme = new Lexeme(lexeme.Type, combinedValue, startIndex, endIndex)
                     {
                         IsCorrupted = true
                     };
 
-                    // Заменяем диапазон токенов одним объединенным
                     lexemes.RemoveRange(start, end - start + 1);
                     lexemes.Insert(start, combinedLexeme);
-                    i = start; // Продолжаем с текущей позиции
+                    i = start;
                 }
             }
         }
@@ -132,40 +124,40 @@ public class ReqParser : IParser
 
     private bool CanGetNext() => CurrIndex < MaxIndex;
 
-    private void Z(bool get, bool neutralize = false)
+    private void DECLARE(bool get, bool neutralize = false)
     {
         if (get) ChangeCurrentToken();
         if (CurrToken.IsCorrupted)
         {
-            HandleCorruptedToken(LexemeType.DECLARE, () => E(true), () => Z(true));
+            HandleCorruptedToken(LexemeType.DECLARE, () => IDENTIFIER(true), () => DECLARE(true));
             return;
         }
 
         if (CurrToken.Type == LexemeType.DECLARE)
         {
-            E(true);
+            IDENTIFIER(true);
         }
         else
         {
             if (CurrToken.Type == LexemeType.Identifier && GetNextType() == LexemeType.CONSTANT)
             {
                 Errors.Add(new ParserError($"Пропущено ключевое слово DECLARE", CurrToken.StartIndex, CurrToken.EndIndex, ErrorType.UnfinishedExpression));
-                E(false);
+                IDENTIFIER(false);
             }
             else
             {
                 Errors.Add(new ParserError($"Ожидалось ключевое слово DECLARE, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, CurrToken.EndIndex, ErrorType.UnfinishedExpression));
-                SkipToNextValidToken(LexemeType.DECLARE, () => E(true));
+                SkipToNextValidToken(LexemeType.DECLARE, () => IDENTIFIER(true));
             }
         }
     }
 
-    private void E(bool get, bool neutralize = false)
+    private void IDENTIFIER(bool get, bool neutralize = false)
     {
         if (get) ChangeCurrentToken();
         if (CurrToken.IsCorrupted)
         {
-            HandleCorruptedToken(LexemeType.Identifier, () => CONST(true), () => E(true));
+            HandleCorruptedToken(LexemeType.Identifier, () => CONST(true), () => IDENTIFIER(true));
             return;
         }
 
@@ -351,13 +343,13 @@ public class ReqParser : IParser
         if (get) ChangeCurrentToken();
         if (CurrToken.IsCorrupted)
         {
-            HandleCorruptedToken(LexemeType.Semicolon, () => Z(true), () => END(true));
+            HandleCorruptedToken(LexemeType.Semicolon, () => DECLARE(true), () => END(true));
             return;
         }
 
         if (CurrToken.Type == LexemeType.Semicolon)
         {
-            Z(true);
+            DECLARE(true);
         }
         else
         {
@@ -365,12 +357,12 @@ public class ReqParser : IParser
             {
                 Errors.Add(new ParserError($"Пропущен оператор конца выражения", CurrToken.StartIndex, CurrToken.EndIndex, ErrorType.UnfinishedExpression));
                 if (GetNextType() != LexemeType.Error)
-                    Z(false);
+                    DECLARE(false);
             }
             else
             {
                 Errors.Add(new ParserError($"Ожидался оператор конца выражения, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, CurrToken.EndIndex, ErrorType.UnfinishedExpression));
-                SkipToNextValidToken(LexemeType.Semicolon, () => Z(true));
+                SkipToNextValidToken(LexemeType.Semicolon, () => DECLARE(true));
             }
         }
     }
