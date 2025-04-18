@@ -103,7 +103,7 @@
                     <MenuItem Header="Ошибочные данные" FontFamily="Calibri" Command="{Binding OpenWrongTestCaseCommand}"/>
                 </MenuItem>
                 <MenuItem Header="Список литературы" FontFamily="Calibri" Command="{Binding LiteratureCommand}"/>
-                <MenuItem Header="Исходный код программы" FontFamily="Calibri"/>
+                <MenuItem Header="Исходный код программы" FontFamily="Calibri" Command="{Binding ViewSourceCodeCommand}"/>
             </MenuItem>
             <MenuItem Header="Пуск" FontFamily="Calibri" Command="{Binding StartAnalyzersCommand}"/>
             <MenuItem Header="Справка" FontFamily="Calibri" ItemContainerStyle="{StaticResource MenuItemStyle}">

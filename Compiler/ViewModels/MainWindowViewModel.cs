@@ -21,6 +21,7 @@ public class MainWindowViewModel : ViewModelBase
     private const string _problemStatementPath = @"Resources\ProblemStatement.html";
     private const string _correctTestCasePath = @"Resources\correct_test_case.txt";
     private const string _wrongTestCasePath = @"Resources\wrong_test_case.txt";
+    private const string _sourceCode = @"https://github.com/dkoazzofk/Compiler";
 
     private string _currentFilePath;
     private string _fileContent;
@@ -40,6 +41,7 @@ public class MainWindowViewModel : ViewModelBase
     private RelayCommand _grammarCommand;
     private RelayCommand _grammarClassificationCommand;
     private RelayCommand _neutralizingErrorsCommand;
+    private RelayCommand _viewSourceCodeCommand;
     private RelayCommand _methodOfAnalysisCommand;
     private RelayCommand _startAnalyzersCommand;
     private RelayCommand _removeErrorsCommand;
@@ -204,6 +206,10 @@ public class MainWindowViewModel : ViewModelBase
         get => _saveFileCommand ??= new RelayCommand(SaveFile, _ => _isFileModified || CurrentFilePath == string.Empty);
     }
 
+    public RelayCommand ViewSourceCodeCommand
+    {
+        get => _viewSourceCodeCommand ??= new RelayCommand(_ => HtmlHelper.OpenInBrowser(_sourceCode));
+    }
     public RelayCommand SaveAsFileCommand
     {
         get => _saveAsFileCommand ??= new RelayCommand(SaveAsFile);
