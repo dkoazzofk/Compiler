@@ -1,0 +1,1 @@
+DECLAR product_price CONSTANT =@ +150k;

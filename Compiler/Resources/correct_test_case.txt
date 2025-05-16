@@ -1,0 +1,1 @@
+DECLARE product_price CONSTANT INTEGER = +150;

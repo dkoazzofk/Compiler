@@ -1,0 +1,313 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Метод анализа</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Метод анализа</h1>
+    <p>Методом анализа является метод рекурсивного спуска:</p>
+    <pre><strong>
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Compiler;
+
+public class ReqParser : IParser
+{
+    private List<Lexeme> tokens;
+    private Lexeme CurrToken;
+    private int CurrIndex;
+    private int MaxIndex;
+
+    public List<ParserError> Errors { get; set; }
+
+    public ReqParser()
+    {
+        Errors = new List<ParserError>();
+    }
+
+    public List<ParserError> Parse(List<Lexeme> tokensList)
+    {
+        Errors.Clear();
+        if (tokensList.Count <= 0)
+            return Errors;
+        GetAndRemoveInvalidLexemes(tokensList);
+        tokens = tokensList;
+        CurrIndex = 0;
+        MaxIndex = tokensList.Count - 1;
+        CurrToken = tokens[CurrIndex];
+
+        try
+        {
+            Z(false);
+        }
+        catch (SyntaxErrorException)
+        {
+            if (CurrToken.Type != LexemeType.Semicolon)
+                Errors.Add(new ParserError($"Выражение незакончено", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression)); 
+        }
+
+        return Errors;
+    }
+
+    public void GetAndRemoveInvalidLexemes(List<Lexeme> lexemes)
+    {
+        for (int i = lexemes.Count - 1; i >= 0; i--)
+        {
+            var lexeme = lexemes[i];
+            if (lexeme.Type == LexemeType.Whitespace || lexeme.Type == LexemeType.NewLine || lexeme.Type == LexemeType.InvalidCharacter)
+            {
+                Errors.Add(new ParserError($"Недопустимый символ \"{lexeme.Value}\"", lexeme.StartIndex, lexeme.EndIndex, ErrorType.UnfinishedExpression));
+                lexemes.RemoveAt(i);
+            }
+        }
+    }
+
+    private void ChangeCurrentToken()
+    {
+        if (CanGetNext())
+        {
+            CurrIndex++;
+            CurrToken = tokens[CurrIndex];
+        }
+        else
+        {
+            throw new SyntaxErrorException();
+        }
+    }
+
+    private LexemeType GetNextType()
+    {
+        return CanGetNext() ? tokens[CurrIndex + 1].Type : LexemeType.Error;
+    }
+
+    private bool CanGetNext() => CurrIndex < MaxIndex;
+
+    private void Z(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.DECLARE)
+        {
+            E(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.Identifier && GetNextType() == LexemeType.CONSTANT)
+            {
+                Errors.Add(new ParserError($"Пропущено ключевое слово DECLARE", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                E(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидалось ключевое слово DECLARE, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                E(true);
+            }
+        }
+    }
+
+    private void E(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.Identifier)
+        {
+            CONST(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.CONSTANT)
+            {
+                Errors.Add(new ParserError($"Пропущен идентификатор", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                CONST(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидался идентификатор, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.Identifier)
+                    E(true);
+                else
+                    CONST(true);
+            }
+        }
+    }
+
+    private void CONST(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.CONSTANT)
+        {
+            INT(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.INTEGER)
+            {
+                Errors.Add(new ParserError($"Пропущено ключевое слово CONSTANT", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                INT(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидалось ключевое слово CONSTANT, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.CONSTANT)
+                    CONST(true);
+                else
+                    INT(true);
+            }
+        }
+    }
+
+    private void INT(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.INTEGER)
+        {
+            ASSIGN(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.AssignmentOperator)
+            {
+                Errors.Add(new ParserError($"Пропущено ключевое слово INTEGER", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                ASSIGN(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидалось ключевое слово INTEGER, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                
+                if (GetNextType() == LexemeType.INTEGER)
+                    INT(true);
+                else
+                    ASSIGN(true);
+            }
+        }
+    }
+
+    private void ASSIGN(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.AssignmentOperator)
+        {
+            NUMBER(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.Sign || CurrToken.Type == LexemeType.UnsignedInteger)
+            {
+                Errors.Add(new ParserError($"Пропущен оператор присваивания", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                NUMBER(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидался оператор присваивания, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.AssignmentOperator)
+                    ASSIGN(true);
+                else
+                    NUMBER(true);
+            }
+        }
+    }
+
+    private void NUMBER(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.Sign || CurrToken.Type == LexemeType.UnsignedInteger || neutralize)
+        {
+            UNSIGNEDINT(CurrToken.Type == LexemeType.Sign);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.Semicolon)
+            {
+                Errors.Add(new ParserError($"Пропущен знак или число", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                UNSIGNEDINT(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидался знак или число, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.Sign || GetNextType() == LexemeType.UnsignedInteger)
+                    NUMBER(true);
+                else
+                    UNSIGNEDINT(true, true);
+            }
+        }
+    }
+
+    private void UNSIGNEDINT(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.UnsignedInteger)
+        {
+            END(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.Semicolon)
+            {
+                if (!neutralize)
+                    Errors.Add(new ParserError($"Пропущено число", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                END(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидалось число, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.UnsignedInteger)
+                    UNSIGNEDINT(true);
+                else
+                    END(true);
+            }
+        }
+    }
+
+    private void END(bool get, bool neutralize = false)
+    {
+        if (get) ChangeCurrentToken();
+
+        if (CurrToken.Type == LexemeType.Semicolon)
+        {
+            Z(true);
+        }
+        else
+        {
+            if (CurrToken.Type == LexemeType.DECLARE || GetNextType() == LexemeType.Error)
+            {
+                Errors.Add(new ParserError($"Пропущен оператор конца выражения", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+                if (GetNextType() != LexemeType.Error)
+                    Z(false);
+            }
+            else
+            {
+                Errors.Add(new ParserError($"Ожидался оператор конца выражения, а встречено \"{CurrToken.Value}\"", CurrToken.StartIndex, tokens[MaxIndex].EndIndex, ErrorType.UnfinishedExpression));
+
+                if (GetNextType() == LexemeType.Semicolon)
+                    END(true);
+                else
+                    Z(true);
+            }
+        }
+    }
+}
+</strong>
+</pre>
+</body>
+</html>
