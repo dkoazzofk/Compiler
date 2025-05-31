@@ -1,221 +1,220 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Lab7;
-
-public class WhileParser
+namespace Lab7
 {
-    private string result = "";
-    private List<Token> tokens;
-    private Token CurrToken;
-    private int CurrIndex;
-    private int MaxIndex;
-    private const string sep1 = " → ";
-
-    public string Parse(List<Token> tokensList)
+    public class EnglishParser
     {
-        tokens = tokensList;
-        CurrIndex = 0;
-        MaxIndex = tokensList.Count - 1;
-        CurrToken = tokens[CurrIndex];
-        result = string.Empty;
+        private string result = "";
+        private List<Token> tokens;
+        private Token currentToken;
+        private int currentIndex;
+        private const string separator = " → ";
 
-        try
+        public string Parse(List<Token> tokensList)
         {
-            While(false);
-        }
-        catch (SyntaxErrorException)
-        {
-            log("Syntax Error: Обнаружено незаконченное выражение.");
-        }
+            tokens = tokensList;
+            currentIndex = 0;
+            currentToken = tokens[currentIndex];
+            result = string.Empty;
 
-        return result;
-    }
-
-    private void log(string str, string sep = sep1)
-    {
-        result += (result == string.Empty) ? str : $"{sep}{str}";
-    }
-
-    private void ChangeCurrentToken()
-    {
-        if (CanGetNext())
-        {
-            CurrIndex++;
-            CurrToken = tokens[CurrIndex];
-        }
-        else
-        {
-            throw new SyntaxErrorException();
-        }
-    }
-
-    private bool CanGetNext() => CurrIndex < MaxIndex;
-
-    private void While(bool get)
-    {
-        if (get) ChangeCurrentToken();
-
-        log("<While>", "");
-
-        if (CurrToken.Type == TokenType.While)
-        {
-            log("while", sep1);
-            Cond(true);
-            if (CurrToken.Type == TokenType.Do)
+            try
             {
-                log("do", sep1);
-                Stmt(true);
-                if (CurrToken.Type == TokenType.End)
+                S();
+                if (currentToken.Type != TokenType.EndOfSentence)
                 {
-                    log("end", sep1);
-                    ChangeCurrentToken();
-                    if (CurrToken.Type == TokenType.Semicolon)
-                    {
-                        log(";", sep1);
-                        log("\n", "\n");
+                    Error("Ожидался конец предложения (., ?, !)");
+                }
+            }
+            catch (Exception ex)
+            {
+                result += $"\nSyntax Error: {ex.Message}";
+            }
 
-                        if (CanGetNext())
-                        {
-                            While(true);
-                        }
+            return result;
+        }
+
+        private void Log(string str)
+        {
+            result += (result == string.Empty) ? str : separator + str;
+        }
+
+        private void NextToken()
+        {
+            if (currentIndex < tokens.Count - 1)
+            {
+                currentIndex++;
+                currentToken = tokens[currentIndex];
+            }
+            else
+            {
+                throw new Exception("Неожиданный конец входных данных");
+            }
+        }
+
+        private void Error(string message)
+        {
+            throw new Exception($"{message} (на позиции {currentToken.StartIndex}, токен: '{currentToken.Value}')");
+        }
+
+        private void S()
+        {
+            Log("S");
+            NP();
+            VP();
+        }
+
+        private void NP()
+        {
+            Log("NP");
+            switch (currentToken.Type)
+            {
+                case TokenType.Pronoun:
+                    Log("Pro");
+                    NextToken();
+                    break;
+                case TokenType.ProperNoun:
+                    Log("PropN");
+                    NextToken();
+                    break;
+                case TokenType.Determiner:
+                    Log("Det");
+                    NextToken();
+
+                    if (currentToken.Type == TokenType.Adjective)
+                    {
+                        A();
+                        Nom();
                     }
                     else
                     {
-                        log("Syntax Error: Ожидался оператор конца выражения \";\".");
+                        Nom();
+                    }
+                    break;
+                default:
+                    Error("Ожидалось NP (Pronoun, ProperNoun или Det)");
+                    break;
+            }
+        }
+
+        private void Nom()
+        {
+            Log("Nom");
+
+            if (currentToken.Type == TokenType.Noun)
+            {
+                N();
+
+                if (currentToken.Type == TokenType.Preposition)
+                {
+                    PP();
+                }
+            }
+            else if (currentToken.Type == TokenType.Noun)
+            {
+                N();
+                Nom();
+            }
+            else
+            {
+                N();
+            }
+        }
+
+        private void VP()
+        {
+            Log("VP");
+
+            if (currentToken.Type == TokenType.Verb)
+            {
+                V();
+
+                if (currentToken.Type == TokenType.Pronoun ||
+                    currentToken.Type == TokenType.ProperNoun ||
+                    currentToken.Type == TokenType.Determiner)
+                {
+                    NP();
+
+                    if (currentToken.Type == TokenType.Preposition)
+                    {
+                        PP();
                     }
                 }
-                else
+                else if (currentToken.Type == TokenType.Preposition)
                 {
-                    log("Syntax Error: Ожидалось ключевое слово \"end\".");
+                    PP();
                 }
             }
             else
             {
-                log("Syntax Error: Ожидалось ключевое слово \"do\".");
+                Error("Ожидался глагол (VP)");
             }
         }
-        else
+
+        private void PP()
         {
-            log("Syntax Error: Ожидалось ключевое слово \"while\".");
-        }
-    }
-
-    private void Cond(bool get)
-    {
-        if (get) ChangeCurrentToken();
-
-        log("<Cond>", sep1);
-
-        LogExpr(false);
-        if (CurrToken.Type == TokenType.Or)
-        {
-            log("or", sep1);
-
-            Cond(true);
-        }
-    }
-
-    private void LogExpr(bool get)
-    {
-        if (get) ChangeCurrentToken();
-        
-        log("<LogExpr>", sep1);
-
-        RelExpr(false);
-        if (CurrToken.Type == TokenType.And)
-        {
-            log("and", sep1);
-
-            LogExpr(true);
-        }
-    }
-
-    private void RelExpr(bool get, bool isFirstOrSecond = true)
-    {
-        if (get) ChangeCurrentToken();
-
-        log("<RelExp>", sep1);
-
-        Operand(false);
-        ChangeCurrentToken();
-        if (CurrToken.Type == TokenType.Rel)
-        {
-            log($"Rel \"{CurrToken.Value}\"", sep1);
-
-            RelExpr(true, false);
-        }
-        else if (isFirstOrSecond)
-        {
-            log("Syntax Error: Ожидалось хотя бы одно законченное логическое выражение.");
-        }
-    }
-
-    private void Operand(bool get)
-    {
-        if (get) ChangeCurrentToken();
-
-        log("<Operand>", sep1);
-
-        switch (CurrToken.Type)
-        {
-            case TokenType.Var:
-                log($"Var \"{CurrToken.Value}\"", sep1);
-                break;
-            case TokenType.Const:
-                log($"Const \"{CurrToken.Value}\"", sep1);
-                break;
-            default:
-                log("Syntax Error: Ожидался идентификатор или число.");
-                break;
-
-        }
-    }
-
-    private void Stmt(bool get)
-    {
-        if (get) ChangeCurrentToken();
-
-        log("<Stmt>", sep1);
-
-        if (CurrToken.Type == TokenType.Var)
-        {
-            log($"Var \"{CurrToken.Value}\"", sep1);
-
-            ChangeCurrentToken();
-            if (CurrToken.Type == TokenType.Assignment)
+            Log("PP");
+            if (currentToken.Type == TokenType.Preposition)
             {
-                log("=", sep1);
-
-                ArithExpr(true);
+                P();
+                NP();
             }
             else
             {
-                log("Syntax Error: Ожидался оператор присваивания.");
+                Error("Ожидался предлог (PP)");
             }
         }
-        else
+
+        private void N()
         {
-            log("Syntax Error: Ожидался идентификатор.");
+            if (currentToken.Type == TokenType.Noun)
+            {
+                Log("N");
+                NextToken();
+            }
+            else
+            {
+                Error("Ожидалось существительное (N)");
+            }
         }
-    }
 
-    private void ArithExpr(bool get)
-    {
-        if (get) ChangeCurrentToken();
-        
-        log("<ArithExpr>", sep1);
-
-        Operand(false);
-        ChangeCurrentToken();
-        if (CurrToken.Type == TokenType.ArithOp)
+        private void V()
         {
-            log($"ao \"{CurrToken.Value}\"", sep1);
-            ArithExpr(true);
+            if (currentToken.Type == TokenType.Verb)
+            {
+                Log("V");
+                NextToken();
+            }
+            else
+            {
+                Error("Ожидался глагол (V)");
+            }
+        }
+
+        private void A()
+        {
+            if (currentToken.Type == TokenType.Adjective)
+            {
+                Log("A");
+                NextToken();
+            }
+            else
+            {
+                Error("Ожидалось прилагательное (A)");
+            }
+        }
+
+        private void P()
+        {
+            if (currentToken.Type == TokenType.Preposition)
+            {
+                Log("P");
+                NextToken();
+            }
+            else
+            {
+                Error("Ожидался предлог (P)");
+            }
         }
     }
 }
