@@ -169,3 +169,24 @@ P = {
 @"\b\d{2}\d{2}(?:[01][0-9]|[2][0-9]|[3][0-9]|[4][0-9]|50|[5-9][0-9]|[A-Za-z]{2})(?:[0-9A-Za-z]{3})\b"
 ```
 ![Тест](img/reg_test_3.jpg)
+
+## Лабораторная работа №8. Реализация метода рекурсивного спуска для синтаксического анализа
+
+## Грамматика:
+```
+G[S]:
+1. S → NP VP
+2. NP → Pro | PropN | Det A Nom | Det Nom
+3. Nom → Nom PP | N Nom | N
+4. VP → VP PP | V NP | V NP PP | V PP
+5. PP → P NP
+N → flight | passenger | trip | morning | ...
+V → is | prefers | like | need | depend | fly | ...
+A → cheapest | non-stop | first | latest other | direct | ...
+Pro → me | I | you | it | ...
+PropN → Alaska | Baltimore | Los Angeles | Chicago | ...
+Det → the | a | an | this | these | that | ...
+P → from | to | on | near | ...
+```
+
+## Язык:
